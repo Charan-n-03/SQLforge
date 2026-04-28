@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQLForge — Smart Data Generator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{bg:'#09090B',surface:'#111114',card:'#18181C',border:'#27272A',accent:'#F59E0B','accent-h':'#D97706',muted:'#71717A',success:'#10B981',err:'#EF4444'},fontFamily:{mono:['"JetBrains Mono"','monospace'],sans:['"Space Grotesk"','sans-serif']}}}}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+*{box-sizing:border-box}
+body{background:#09090B;color:#E4E4E7;font-family:'Space Grotesk',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 900px 600px at 10% 20%,rgba(245,158,11,.04) 0%,transparent 70%),radial-gradient(ellipse 600px 500px at 90% 80%,rgba(245,158,11,.025) 0%,transparent 70%);pointer-events:none;z-index:0;animation:bgP 18s ease-in-out infinite alternate}
+@keyframes bgP{0%{opacity:.5}100%{opacity:1}}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3F3F46;border-radius:3px}::-webkit-scrollbar-thumb:hover{background:#52525B}
+.sql-input{background:#0C0C0F;border:1px solid #27272A;color:#E4E4E7;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;resize:vertical;tab-size:2;transition:border-color .2s,box-shadow .2s}
+.sql-input:focus{outline:none;border-color:#F59E0B;box-shadow:0 0 0 3px rgba(245,158,11,.1)}
+.sql-input::placeholder{color:#3F3F46}
+.out-wrap{background:#0C0C0F;border:1px solid #27272A;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;overflow:auto;max-height:520px}
+.cl{display:flex;min-height:1.8em}.ln{width:3.2rem;text-align:right;padding-right:.8rem;color:#2A2A2E;user-select:none;flex-shrink:0;border-right:1px solid #161619;margin-right:.8rem}
+.lc{flex:1;white-space:pre;padding-right:.8rem}
+.sk{color:#F59E0B;font-weight:500}.ss{color:#34D399}.sn{color:#67E8F9}.sc{color:#3F3F46;font-style:italic}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:.7rem 1.4rem;border-radius:.5rem;font-size:.85rem;font-weight:500;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s ease;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}.toast.ok{background:#065F46;color:#6EE7B7;border:1px solid #10B981}.toast.er{background:#7F1D1D;color:#FCA5A5;border:1px solid #EF4444}.toast.inf{background:#78350F;color:#FDE68A;border:1px solid #F59E0B}
+.chip{cursor:pointer;transition:all .2s;border:1px solid #27272A}.chip:hover{border-color:#F59E0B;background:rgba(245,158,11,.05);transform:translateY(-1px)}
+.badge{display:inline-flex;align-items:center;padding:.1rem .45rem;border-radius:9999px;font-size:.6rem;font-weight:700;letter-spacing:.03em;margin-left:.25rem}
+.b-pk{background:rgba(245,158,11,.15);color:#F59E0B}.b-nn{background:rgba(239,68,68,.12);color:#F87171}.b-uq{background:rgba(16,185,129,.12);color:#34D399}.b-ai{background:rgba(139,92,246,.12);color:#A78BFA}.b-sk{background:rgba(113,113,122,.12);color:#A1A1AA}
+.btn-g{position:relative;overflow:hidden}.btn-g::after{content:'';position:absolute;inset:0;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,.08) 50%,transparent 70%);transform:translateX(-100%);transition:transform .5s}.btn-g:hover::after{transform:translateX(100%)}
+.rdbms-sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 7L0 2h10z' fill='%2371717A'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .75rem center;padding-right:2.2rem}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.anim-in{animation:fadeUp .35s ease forwards}
+.title-g{background:linear-gradient(135deg,#F59E0B 0%,#FBBF24 50%,#F59E0B 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.an-table{font-size:.78rem}.an-table th{text-transform:uppercase;letter-spacing:.05em;font-size:.65rem;font-weight:600;color:#52525B}.an-table td,.an-table th{padding:.45rem .7rem;border-bottom:1px solid #1A1A1E}
+.empty-bg{background-image:radial-gradient(circle at 1px 1px,#141417 1px,transparent 0);background-size:20px 20px}
+.pat-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.15rem .55rem;border-radius:.35rem;font-size:.7rem;font-weight:500}
+.pat-str{background:rgba(52,211,153,.1);color:#34D399}.pat-int{background:rgba(103,232,249,.1);color:#67E8F9}.pat-float{background:rgba(129,140,248,.1);color:#818CF8}.pat-date{background:rgba(251,191,36,.1);color:#FBBF24}.pat-bool{background:rgba(244,114,182,.1);color:#F472B6}.pat-uuid{background:rgba(167,139,250,.1);color:#A78BFA}.pat-skip{background:rgba(113,113,122,.1);color:#71717A}.pat-other{background:rgba(113,113,122,.1);color:#A1A1AA}.pat-seq{background:rgba(245,158,11,.1);color:#F59E0B}.pat-rnd{background:rgba(139,92,246,.1);color:#A78BFA}
+</style>
+</head>
+<body class="relative">
+
+<div id="toast" class="toast"></div>
+
+<div class="relative z-10 max-w-7xl mx-auto px-4 py-6">
+  <header class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-accent/15 rounded-lg flex items-center justify-center border border-accent/20">
+        <i class="fas fa-bolt text-accent text-sm"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-extrabold title-g tracking-tight">SQLForge</h1>
+        <p class="text-[11px] text-muted -mt-0.5 tracking-wide">Smart SQL Data Generator</p>
+      </div>
+    </div>
+    <div class="hidden sm:flex items-center gap-2 text-[11px] text-muted">
+      <span class="px-2 py-0.5 rounded bg-card border border-border">Ctrl+Enter to Generate</span>
+      <span class="px-2 py-0.5 rounded bg-card border border-border">100% Client-Side</span>
+    </div>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-3 mb-4 p-3 bg-surface rounded-xl border border-border">
+    <div class="flex items-center gap-2">
+      <label class="text-xs text-muted font-medium">RDBMS</label>
+      <select id="rdbms" class="rdbms-sel bg-card border border-border text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-accent">
+        <option value="mysql">MySQL</option>
+        <option value="postgresql">PostgreSQL</option>
+        <option value="oracle">Oracle</option>
+        <option value="sqlserver">SQL Server</option>
+        <option value="sqlite">SQLite</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <label class="text-xs text-muted font-medium">Records</label>
+      <input type="number" id="rowCount" value="10" min="1" max="5000" class="w-20 bg-card border border-border text-sm text-white rounded-lg px-3 py-1.5 text-center focus:outline-none focus:border-accent font-mono">
+    </div>
+    <div class="w-px h-6 bg-border mx-1 hidden sm:block"></div>
+    <div class="flex items-center gap-2">
+      <label class="text-xs text-muted font-medium">Primary Key</label>
+      <select id="pkMode" class="rdbms-sel bg-card border border-border text-sm text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-accent" style="padding-right:1.8rem">
+        <option value="sequential" selected>Sequential (1, 2, 3...)</option>
+        <option value="random">Random</option>
+        <option value="skip">Skip</option>
+      </select>
+    </div>
+    <label class="flex items-center gap-1.5 text-xs text-muted cursor-pointer select-none">
+      <input type="checkbox" id="includeAutoCols" class="accent-accent w-3.5 h-3.5 rounded">
+      <span>Other auto cols</span>
+    </label>
+    <div class="flex-1"></div>
+    <button onclick="generate()" class="btn-g bg-accent hover:bg-accent-h text-black font-semibold text-sm px-5 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+      <i class="fas fa-wand-magic-sparkles text-xs"></i> Generate
+    </button>
+    <button onclick="copyOutput()" id="copyBtn" class="bg-card hover:bg-[#1f1f23] border border-border text-white text-sm px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+      <i class="far fa-copy text-xs"></i> Copy
+    </button>
+    <button onclick="downloadOutput()" id="dlBtn" class="bg-card hover:bg-[#1f1f23] border border-border text-white text-sm px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+      <i class="fas fa-download text-xs"></i> .sql
+    </button>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-4 mb-4">
+    <div class="flex flex-col">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-xs font-semibold text-muted uppercase tracking-wider">CREATE TABLE Query</span>
+        <button onclick="document.getElementById('sqlInput').value='';hideAnalysis();resetOutput()" class="text-xs text-muted hover:text-white transition-colors">
+          <i class="fas fa-xmark mr-1"></i>Clear
+        </button>
+      </div>
+      <textarea id="sqlInput" class="sql-input w-full rounded-xl p-4 flex-1 min-h-[320px]" placeholder="-- Paste your CREATE TABLE statement here&#10;-- Example:&#10;CREATE TABLE users (&#10;  id INT PRIMARY KEY AUTO_INCREMENT,&#10;  username VARCHAR(50) NOT NULL,&#10;  email VARCHAR(255),&#10;  first_name VARCHAR(100),&#10;  last_name VARCHAR(100),&#10;  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP&#10;);" spellcheck="false"></textarea>
+    </div>
+    <div class="flex flex-col">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-xs font-semibold text-muted uppercase tracking-wider">INSERT Statements</span>
+        <span id="statsBar" class="text-[11px] text-muted"></span>
+      </div>
+      <div id="outputPanel" class="out-wrap rounded-xl p-1 flex-1 min-h-[320px] empty-bg">
+        <div id="emptyState" class="flex flex-col items-center justify-center h-full text-muted py-16">
+          <i class="fas fa-database text-3xl mb-3 opacity-20"></i>
+          <p class="text-sm opacity-60">INSERT statements appear here</p>
+          <p class="text-xs mt-1 opacity-30">Paste a CREATE TABLE query and click Generate</p>
+        </div>
+        <div id="outputCode" class="hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="analysisSection" class="hidden mb-4 anim-in">
+    <div class="flex items-center gap-2 mb-2 px-1">
+      <i class="fas fa-table-columns text-accent text-xs"></i>
+      <span class="text-xs font-semibold text-muted uppercase tracking-wider">Column Analysis</span>
+    </div>
+    <div class="bg-surface rounded-xl border border-border overflow-x-auto">
+      <table class="an-table w-full">
+        <thead><tr>
+          <th class="text-left w-8">#</th><th class="text-left">Column</th><th class="text-left">Type</th>
+          <th class="text-left">Constraints</th><th class="text-left">Data Pattern</th><th class="text-left">Action</th>
+        </tr></thead>
+        <tbody id="analysisBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mb-6">
+    <div class="flex items-center gap-2 mb-3 px-1">
+      <i class="fas fa-flask text-accent text-xs"></i>
+      <span class="text-xs font-semibold text-muted uppercase tracking-wider">Example Queries</span>
+    </div>
+    <div class="flex flex-wrap gap-2" id="exampleChips"></div>
+  </div>
+
+  <footer class="text-center text-[11px] text-muted/50 pb-4">
+    SQLForge runs entirely in your browser. No data is sent anywhere. Supports MySQL, PostgreSQL, Oracle, SQL Server, SQLite.
+  </footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   DATA POOLS
+   ═══════════════════════════════════════════ */
+const FN=['James','Mary','John','Patricia','Robert','Jennifer','Michael','Linda','David','Elizabeth','William','Barbara','Richard','Susan','Joseph','Jessica','Thomas','Sarah','Christopher','Karen','Charles','Lisa','Daniel','Nancy','Matthew','Betty','Anthony','Margaret','Mark','Sandra','Donald','Ashley','Steven','Kimberly','Paul','Emily','Andrew','Donna','Joshua','Michelle','Kenneth','Carol','Kevin','Amanda','Brian','Dorothy','George','Melissa','Timothy','Deborah','Ronald','Stephanie','Edward','Rebecca','Jason','Sharon','Jeffrey','Laura','Ryan','Cynthia','Jacob','Kathleen','Gary','Amy','Nicholas','Angela','Eric','Shirley','Jonathan','Anna','Stephen','Brenda','Larry','Pamela','Justin','Emma','Scott','Nicole','Brandon','Helen','Benjamin','Samantha','Samuel','Katherine','Raymond','Christine','Gregory','Debra','Frank','Rachel','Alexander','Carolyn','Patrick','Janet','Jack','Catherine','Dennis','Maria','Jerry','Heather','Tyler','Diane','Aaron','Ruth','Jose','Julie','Adam','Olivia','Nathan','Joyce','Henry','Virginia','Douglas','Victoria','Peter','Kelly','Zachary','Lauren','Kyle','Christina','Noah','Joan'];
+const LN=['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Rodriguez','Martinez','Hernandez','Lopez','Gonzalez','Wilson','Anderson','Thomas','Taylor','Moore','Jackson','Martin','Lee','Perez','Thompson','White','Harris','Sanchez','Clark','Ramirez','Lewis','Robinson','Walker','Young','Allen','King','Wright','Scott','Torres','Nguyen','Hill','Flores','Green','Adams','Nelson','Baker','Hall','Rivera','Campbell','Mitchell','Carter','Roberts','Turner','Phillips','Evans','Edwards','Collins','Stewart','Morris','Murphy','Cook','Rogers','Morgan','Peterson','Cooper','Reed','Bailey','Bell','Gomez','Kelly','Howard','Ward','Cox','Diaz','Richardson','Wood','Watson','Brooks','Bennett','Gray','James','Reyes','Cruz','Hughes','Price','Myers','Long','Foster','Sanders','Ross','Morales','Powell','Sullivan','Russell','Ortiz','Jenkins','Gutierrez','Perry'];
+const CITIES=['New York','Los Angeles','Chicago','Houston','Phoenix','Philadelphia','San Antonio','San Diego','Dallas','San Jose','Austin','Jacksonville','Fort Worth','Columbus','Charlotte','San Francisco','Indianapolis','Seattle','Denver','Washington','Boston','El Paso','Nashville','Detroit','Oklahoma City','Portland','Las Vegas','Memphis','Louisville','Baltimore','Milwaukee','Albuquerque','Tucson','Fresno','Sacramento','Mesa','Kansas City','Atlanta','Omaha','Colorado Springs','Raleigh','Miami','Virginia Beach','Long Beach','Minneapolis','Tulsa','Arlington','Tampa','Pittsburgh'];
+const STATES=['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'];
+const COUNTRIES=['United States','United Kingdom','Canada','Australia','Germany','France','Japan','Brazil','India','Italy','Spain','Mexico','South Korea','Netherlands','Sweden','Norway','Denmark','Switzerland','Austria','Belgium','Portugal','Ireland','Poland','Czech Republic','New Zealand','Singapore','Taiwan'];
+const STREETS=['Main St','Oak Ave','Maple Dr','Cedar Ln','Pine Rd','Elm St','Washington Blvd','Park Ave','Lake Dr','Hill Rd','River Rd','Forest Ave','Meadow Ln','Spring St','Valley Dr','Sunset Blvd','Highland Ave','Church St','Broadway','Market St','Union Ave','Liberty St','Franklin Rd','Jefferson Dr','Adams Ln','Monroe St','Jackson Ave','Lincoln Blvd','Grant St','Wilson Rd','Madison Ave'];
+const COMPANIES=['Acme Corp','Globex Inc','Initech Systems','Umbrella Corp','Stark Industries','Wayne Enterprises','Cyberdyne Systems','Soylent Corp','Oscorp Industries','Aperture Science','Massive Dynamic','Hooli Technologies','Pied Piper','Dunder Mifflin','Sterling Cooper','TechNova Solutions','DataSphere Analytics','CloudPeak Systems','Nexus Solutions','Quantum Dynamics','FusionCore Labs','AlphaWave Tech','Vertex Systems','Prism Analytics','IronForge Inc','SilverLine Tech','NovaCrest Digital','Helix Digital','ArcLight Media','Zenith Corp'];
+const EMAIL_D=['gmail.com','yahoo.com','outlook.com','hotmail.com','protonmail.com','icloud.com','aol.com','zoho.com','fastmail.com','mail.com'];
+const DOMAINS=['example.com','techcorp.io','dataflow.net','cloudsync.co','webdev.org','startup.xyz','digitalhq.com','innovation.io','platform.net','services.co'];
+const DEPTS=['Engineering','Marketing','Sales','Human Resources','Finance','Operations','Legal','Customer Support','Product','Design','Research','Quality Assurance','IT','Administration','Public Relations','Logistics','Procurement'];
+const JOBS=['Software Engineer','Senior Developer','Product Manager','Data Analyst','UX Designer','DevOps Engineer','QA Engineer','Project Manager','Business Analyst','Frontend Developer','Backend Developer','Full Stack Developer','Database Administrator','System Architect','Technical Lead','Engineering Manager','CTO','VP of Engineering','Software Architect','Security Engineer','Data Scientist','ML Engineer','SRE Engineer','Cloud Engineer'];
+const CATS=['Electronics','Clothing','Food & Beverage','Books','Sports','Home & Garden','Health','Beauty','Toys','Automotive','Office Supplies','Pet Supplies','Music','Movies','Software','Games','Jewelry','Furniture','Tools','Art'];
+const COLORS=['Red','Blue','Green','Yellow','Orange','Purple','Pink','Black','White','Gray','Brown','Navy','Teal','Coral','Gold','Silver','Beige','Maroon','Olive','Cyan'];
+const WORDS=['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel','india','juliet','kilo','lima','mike','november','oscar','papa','quebec','romeo','sierra','tango','ultra','victor','whiskey','xray','yankee','zulu','apex','nexus','pulse','vertex','orbit','flux','core','edge','link','sync','grid','node','byte','data','cloud','stack','code','rust','swift','react','pixel','vector','cipher','neural','quantum','prism','helix','arc','beam','crest','drift','ember','frost','glow','haze','iris','jewel','knot','lumen','mint','nova','opal','pearl','quartz','ridge','sage','tidal','umbra','vapor','wave','xenon','yield','zinc'];
+const STATUS=['active','inactive','pending','suspended','archived','deleted'];
+const PROD_WORDS=['Pro','Ultra','Max','Plus','Elite','Prime','Core','Edge','Smart','Flex','Turbo','Mega','Nano','Hyper','Neo','Eco','Swift','Rapid','Zen','Flux'];
+
+/* ═══════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════ */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const ri=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function rword(){return pick(WORDS)}
+function rstr(len){const c='abcdefghijklmnopqrstuvwxyz0123456789';let r='';for(let i=0;i<len;i++)r+=c[ri(0,c.length-1)];return r}
+function genPhone(){return`(${ri(200,999)}) ${ri(100,999)}-${ri(1000,9999)}`}
+function genUsername(){return pick(FN).toLowerCase()+ri(1,9999)}
+function genProductName(){return cap(pick(PROD_WORDS))+' '+cap(pick(['Series','Edition','Model','Type','Line','Plus','One','X','Pro','Lite']))+' '+cap(rword())}
+function genParagraph(maxLen){
+  const s=['The quick brown fox jumps over the lazy dog.','This feature provides excellent performance and reliability.','Users have reported significant improvements after the latest update.','The system handles high loads with minimal resource usage.','Integration with existing workflows is seamless and straightforward.','Advanced algorithms ensure accurate results in real-time.','Security measures protect sensitive data at every layer.','The interface is intuitive and requires minimal training.','Regular updates bring new capabilities and bug fixes.','Performance benchmarks show consistent improvement across all metrics.','The modular architecture allows for easy customization.','Comprehensive documentation covers all common use cases.','Automated testing ensures stability across different environments.','Cross-platform compatibility eliminates deployment barriers.','The solution scales horizontally to meet growing demands.'];
+  let r='';while(r.length<maxLen)r+=(r?' ':'')+pick(s);return r.substring(0,maxLen)
+}
+function genSlug(t){return t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').substring(0,60)}
+function genIP(){return`${ri(1,255)}.${ri(0,255)}.${ri(0,255)}.${ri(1,254)}`}
+function genMAC(){return Array.from({length:6},()=>ri(0,255).toString(16).padStart(2,'0')).join(':')}
+function genUUID(){return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})}
+function genJSON(){return JSON.stringify({id:ri(1,999),name:cap(rword())+' '+cap(rword()),value:ri(1,1000),active:Math.random()>.3,tags:[pick(WORDS),pick(WORDS),pick(WORDS)]})}
+
+/* ═══════════════════════════════════════════
+   SQL PARSER
+   ═══════════════════════════════════════════ */
+function splitParens(str){
+  const p=[];let d=0,c='';
+  for(const ch of str){if(ch==='(')d++;if(ch===')')d--;if(ch===','&&d===0){p.push(c);c=''}else c+=ch}
+  if(c.trim())p.push(c);return p
+}
+
+function normalizeType(t){
+  const u=t.toUpperCase();
+  if(['INT','INTEGER','TINYINT','SMALLINT','MEDIUMINT','BIGINT','INT2','INT4','INT8'].includes(u))return'INTEGER';
+  if(['FLOAT','DOUBLE','DOUBLE PRECISION','REAL','FLOAT4','FLOAT8'].includes(u))return'FLOAT';
+  if(['DECIMAL','NUMERIC','NUMBER','MONEY','SMALLMONEY'].includes(u))return'DECIMAL';
+  if(['VARCHAR','VARCHAR2','NVARCHAR','CHAR','NCHAR','BPCHAR','CHARACTER VARYING','CHARACTER'].includes(u))return'STRING';
+  if(['TEXT','CLOB','NTEXT','LONG','LONG VARCHAR','NCLOB'].includes(u))return'TEXT';
+  if(u==='DATE')return'DATE';
+  if(['DATETIME','DATETIME2','DATETIMEOFFSET','TIMESTAMP','TIMESTAMP WITHOUT TIME ZONE','TIMESTAMP WITH TIME ZONE','SMALLDATETIME'].includes(u))return'TIMESTAMP';
+  if(['BOOLEAN','BOOL','BIT'].includes(u))return'BOOLEAN';
+  if(['BLOB','BINARY','VARBINARY','BYTEA','RAW','LONG RAW','IMAGE','TINYBLOB','MEDIUMBLOB','LONGBLOB'].includes(u))return'BINARY';
+  if(['SERIAL','BIGSERIAL','SMALLSERIAL'].includes(u))return'SERIAL';
+  if(u==='UUID')return'UUID';
+  if(u==='ENUM')return'ENUM';
+  if(['JSON','JSONB'].includes(u))return'JSON';
+  if(['TIME','TIME WITHOUT TIME ZONE','TIME WITH TIME ZONE'].includes(u))return'TIME';
+  if(u==='YEAR')return'YEAR';
+  return'STRING';
+}
+
+function parseCreateTable(sql){
+  sql=sql.replace(/--.*$/gm,'').replace(/\/\*[\s\S]*?\*\//g,'');
+  sql=sql.replace(/\s+/g,' ').trim();
+
+  const tMatch=sql.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:`([^`]+)`|\[([^\]]+)\]|"([^"]+)"|([\w.]+))/i);
+  if(!tMatch)throw new Error('Could not parse table name. Ensure valid CREATE TABLE syntax.');
+  let tableName=tMatch[1]||tMatch[2]||tMatch[3]||tMatch[4];
+  tableName=tableName.replace(/^"|"$/g,'').replace(/^\[|\]$/g,'').replace(/^`|`$/g,'');
+  const dotIdx=tableName.indexOf('.');
+  const schemaName=dotIdx>-1?tableName.substring(0,dotIdx):null;
+  if(dotIdx>-1)tableName=tableName.substring(dotIdx+1);
+
+  const pMatch=sql.match(/\(([\s\S]+)\)\s*(?:ENGINE|WITH|TABLESPACE|ON|DISTRIBUTED|DEFAULT|INHERITS|PARTITION|;\s*$|$)/i)||sql.match(/\(([\s\S]+)\)\s*$/);
+  if(!pMatch)throw new Error('Could not find column definitions in parentheses.');
+  const parts=splitParens(pMatch[1]);
+  const columns=[];
+  const skippedConstraints=[];
+
+  for(const part of parts){
+    const trimmed=part.trim();
+    if(!trimmed)continue;
+    if(/^\s*(PRIMARY\s+KEY\s*\(|FOREIGN\s+KEY|UNIQUE\s*\(|CHECK\s*\(|CONSTRAINT\s+\w+\s+(PRIMARY|FOREIGN|UNIQUE|CHECK)|INDEX\s*\(|KEY\s*\()/i.test(trimmed)){
+      skippedConstraints.push(trimmed);continue;
+    }
+    const col=parseColumn(trimmed);
+    if(col)columns.push(col);
+  }
+  if(!columns.length)throw new Error('No columns found. Check your CREATE TABLE syntax.');
+  return{tableName,schemaName,columns,skippedConstraints};
+}
+
+function parseColumn(def){
+  def=def.trim();
+  const nm=def.match(/^(?:`([^`]+)`|\[([^\]]+)\]|"([^"]+)"|(\w+))/);
+  if(!nm)return null;
+  const name=nm[1]||nm[2]||nm[3]||nm[4];
+  let rest=def.substring(nm[0].length).trim();
+
+  const tm=rest.match(/^(\w+)(?:\s*\(([^)]*)\))?/i);
+  if(!tm)return null;
+  const rawType=tm[1].toUpperCase();
+  let typeParams=tm[2]?tm[2].trim():null;
+  rest=rest.substring(tm[0].length).trim();
+
+  rest=rest.replace(/\b(UNSIGNED|ZEROFILL|SIGNED)\b/gi,' ')
+    .replace(/\bCHARACTER\s+SET\s+\w+\b/gi,' ')
+    .replace(/\bCOLLATE\s+[\w_]+\b/gi,' ')
+    .replace(/\bON\s+UPDATE\s+CURRENT_TIMESTAMP\b/gi,' ')
+    .trim();
+
+  const isPrimary=/\bPRIMARY\s+KEY\b/i.test(rest);
+  const isNotNull=/\bNOT\s+NULL\b/i.test(rest);
+  const isUnique=/\bUNIQUE\b/i.test(rest);
+  const isAutoInc=/\b(AUTO_INCREMENT|IDENTITY\b)/i.test(rest)||rawType==='SERIAL'||rawType==='BIGSERIAL';
+  const isGenerated=/\bGENERATED\s+(ALWAYS|BY\s+DEFAULT)\s+AS\b/i.test(rest);
+
+  let defaultValue=null;
+  const dm=rest.match(/\bDEFAULT\s+('(?:[^']*(?:''[^']*)*)'|"(?:[^"]*(?:""[^"]*)*)"|[\w().]+)/i);
+  if(dm)defaultValue=dm[1].replace(/^['"]|['"]$/g,'');
+
+  const isDefaultFunc=defaultValue&&/\(.*\)/.test(defaultValue);
+  const isDefaultSpecial=defaultValue&&/^(CURRENT_TIMESTAMP|NOW\(\)|SYSDATE|GETDATE\(\)|CURRENT_DATE|CURRENT_TIME|UUID_GENERATE\w*\(\)|GEN_RANDOM_UUID\(\)|NEXTVAL\(\S+\)|NULL)$/i.test(defaultValue);
+  const shouldSkip=isAutoInc||isGenerated||rawType==='SERIAL'||rawType==='BIGSERIAL'||isDefaultFunc||isDefaultSpecial;
+
+  let enumValues=null;
+  if(rawType==='ENUM'&&typeParams){
+    enumValues=[];let cur='',inQ=false,qc='';
+    for(const ch of typeParams){
+      if(!inQ&&(ch==="'"||ch==='"')){inQ=true;qc=ch}
+      else if(inQ&&ch===qc){inQ=false}
+      else if(!inQ&&ch===','){enumValues.push(cur.trim().replace(/^['"]|['"]$/g,''));cur=''}
+      else cur+=ch;
+    }
+    if(cur.trim())enumValues.push(cur.trim().replace(/^['"]|['"]$/g,''));
+  }
+
+  const normalizedType=normalizeType(rawType);
+
+  return{
+    name,rawType,normalizedType,typeParams,
+    isPrimary,isNotNull,isUnique,isAutoIncrement:isAutoInc||isGenerated||rawType==='SERIAL'||rawType==='BIGSERIAL',
+    isGenerated,defaultValue,enumValues,shouldSkip,
+    isAutoIncOnly:isAutoInc||rawType==='SERIAL'||rawType==='BIGSERIAL',
+    isDefaultAuto:isDefaultFunc||isDefaultSpecial,
+    stringLength:typeParams&&!typeParams.includes(',')?parseInt(typeParams):null,
+    decimalPrecision:typeParams&&typeParams.includes(',')?parseInt(typeParams.split(',')[0]):null,
+    decimalScale:typeParams&&typeParams.includes(',')?parseInt(typeParams.split(',')[1]):null
+  };
+}
+
+/* ═══════════════════════════════════════════
+   DATA GENERATOR
+   ═══════════════════════════════════════════ */
+function createRowCtx(){
+  const f=pick(FN),l=pick(LN);
+  const el=f.toLowerCase().replace(/[^a-z]/g,'')+pick(['.','_',''])+l.toLowerCase().replace(/[^a-z]/g,'')+ri(1,999);
+  return{
+    firstName:f,lastName:l,fullName:f+' '+l,
+    email:el+'@'+pick(EMAIL_D),
+    username:f.toLowerCase()+ri(1,9999),
+    phone:genPhone(),city:pick(CITIES),state:pick(STATES),country:pick(COUNTRIES),
+    street:ri(100,9999)+' '+pick(STREETS),zip:String(ri(10000,99999)),
+    company:pick(COMPANIES),department:pick(DEPTS),jobTitle:pick(JOBS),
+    address:ri(100,9999)+' '+pick(STREETS)+', '+pick(CITIES)+', '+pick(STATES)+' '+ri(10000,99999)
+  };
+}
+
+function genStr(cn,len,isText,ctx,tbl){
+  len=len||(isText?200:50);
+  if(/^(first_name|firstname|fname|given_name)$/i.test(cn))return ctx.firstName;
+  if(/^(last_name|lastname|lname|family_name|surname)$/i.test(cn))return ctx.lastName;
+  if(/^(full_name|fullname|display_name|displayname)$/i.test(cn))return ctx.fullName;
+  if(/^(name|product_name|item_name|cat_name|category_name|brand_name|tag_name|title|post_title|page_title)$/i.test(cn)){
+    const tl=(tbl||'').toLowerCase();
+    if(/user|customer|member|account|contact|person|client|employee|emp|author/i.test(tl))return ctx.fullName;
+    if(/product|item|good|merch/i.test(tl))return genProductName();
+    if(/categor|tag|type|genre|class/i.test(tl))return pick(CATS);
+    if(/compan|org|brand|vendor|supplier/i.test(tl))return pick(COMPANIES);
+    if(/post|article|blog|page|content/i.test(tl))return cap(rword())+' '+cap(rword())+' '+cap(rword())+' '+pick(['Guide','Tutorial','Review','Tips','Overview','Analysis','Report','Update']);
+    return genProductName();
+  }
+  if(/\bemail\b/i.test(cn))return ctx.email;
+  if(/\b(phone|mobile|tel|fax)\b/i.test(cn))return ctx.phone;
+  if(/^(street|address1|addr1|address_line1)$/i.test(cn))return ctx.street;
+  if(/^(address2|addr2|address_line2)$/i.test(cn))return pick(['Apt '+ri(1,500),'Suite '+ri(100,999),'Unit '+ri(1,50),'Floor '+ri(1,20),'','']);
+  if(/\bcity\b/i.test(cn))return ctx.city;
+  if(/\b(state|province|region)\b/i.test(cn))return ctx.state;
+  if(/\bcountry(?!_code)\b/i.test(cn))return ctx.country;
+  if(/\bcountry_code\b/i.test(cn))return pick(['US','GB','CA','AU','DE','FR','JP','BR','IN','IT','ES','MX','KR','NL','SE','NO','DK','CH','AT','BE']);
+  if(/\b(zip|postal|postcode|zip_code|postal_code)\b/i.test(cn))return ctx.zip;
+  if(/^(address|addr|full_address|shipping_address|billing_address)$/i.test(cn))return ctx.address;
+  if(/\b(company|org|organization|employer|brand|vendor|supplier)\b/i.test(cn))return ctx.company;
+  if(/\b(department|dept)\b/i.test(cn))return ctx.department;
+  if(/\b(title|position|role|job_title|job)\b/i.test(cn)&&!/post|page|article|blog|product/i.test(cn))return ctx.jobTitle;
+  if(/\b(url|website|link|site|homepage|domain)\b/i.test(cn))return'https://www.'+pick(DOMAINS);
+  if(/\b(status|state)\b/i.test(cn)&&!/state_code|province/i.test(cn))return pick(STATUS);
+  if(/\b(categor|category|type|genre|class|group)\b/i.test(cn))return pick(CATS);
+  if(/\b(color|colour)\b/i.test(cn))return pick(COLORS);
+  if(/\b(desc|note|comment|bio|summary|content|body|message|remark|review|feedback|text)\b/i.test(cn)||isText)return genParagraph(Math.min(len,300));
+  if(/\b(avatar|image|photo|picture|logo|icon|thumbnail|banner)\b/i.test(cn))return'https://picsum.photos/seed/'+ri(1,9999)+'/200/200';
+  if(/\b(gender|sex)\b/i.test(cn))return pick(['Male','Female','Non-binary','Prefer not to say']);
+  if(/\blang(?!uage_code|uages)\b/i.test(cn))return pick(['English','Spanish','French','German','Chinese','Japanese','Korean','Portuguese','Italian','Russian','Hindi','Arabic']);
+  if(/\blanguage_code\b/i.test(cn))return pick(['en','es','fr','de','zh','ja','ko','pt','it','ru','hi','ar']);
+  if(/\b(currenc|curr)\b/i.test(cn))return pick(['USD','EUR','GBP','JPY','CAD','AUD','CHF','CNY','INR','BRL','MXN','KRW']);
+  if(/\b(sku|code|ref|barcode|isbn|part_number|item_code)\b/i.test(cn))return pick(['SKU','REF','ITEM','PC','PN'])+'-'+ri(10000,99999);
+  if(/\b(tag|label)\b/i.test(cn))return pick(['premium','featured','new','sale','popular','trending','limited','exclusive','bestseller','recommended']);
+  if(/\b(password|pass|pwd|secret|token|api_key|apikey)\b/i.test(cn))return'$2b$10$'+rstr(53);
+  if(/\bip\b/i.test(cn))return genIP();
+  if(/\bmac\b/i.test(cn))return genMAC();
+  if(/\bslug\b/i.test(cn))return genSlug(cap(rword())+' '+cap(rword()));
+  if(/\busername|user_name|login|handle|account_name\b/i.test(cn))return ctx.username;
+  if(/\blocale\b/i.test(cn))return pick(['en-US','en-GB','es-ES','fr-FR','de-DE','ja-JP','zh-CN','pt-BR','ko-KR','it-IT']);
+  if(/\btimezone|time_zone|tz\b/i.test(cn))return pick(['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Paris','Europe/Berlin','Asia/Tokyo','Asia/Shanghai','Australia/Sydney']);
+  if(/\bfile|filename|file_name|path|filepath\b/i.test(cn))return'/uploads/'+ri(2020,2024)+'/'+ri(1,12)+'/'+rword()+'.pdf';
+  if(/\bsubject\b/i.test(cn))return cap(rword())+' '+cap(rword())+' '+pick(['Inquiry','Request','Update','Notification','Follow-up','Report','Issue','Feedback']);
+  if(/\bmessage\b/i.test(cn))return genParagraph(Math.min(len,200));
+  if(/\bdescription\b/i.test(cn))return genParagraph(Math.min(len,150));
+  if(/\breason\b/i.test(cn))return pick(['Customer request','Policy update','System maintenance','Security review','Compliance requirement','Performance optimization','Bug fix','Feature enhancement']);
+  if(len<=5)return rstr(len);
+  if(len<=20)return cap(rword());
+  if(len<=50)return cap(rword())+' '+cap(rword());
+  return cap(rword())+' '+cap(rword())+' '+cap(rword());
+}
+
+function genInt(cn){
+  if(/\b(age|years|year_old)\b/i.test(cn))return ri(18,72);
+  if(/\b(quantity|qty|stock|count|num|units|total_items|items|in_stock)\b/i.test(cn))return ri(0,500);
+  if(/\b(user_id|author_id|employee_id|emp_id|manager_id|created_by|updated_by)\b/i.test(cn))return ri(1,200);
+  if(/\b(order_id|invoice_id|payment_id|transaction_id)\b/i.test(cn))return ri(10000,99999);
+  if(/\b(category_id|cat_id|dept_id|department_id)\b/i.test(cn))return ri(1,20);
+  if(/\b(view_count|views|clicks|impressions|downloads|likes|followers|subscribers)\b/i.test(cn))return ri(0,50000);
+  if(/\b(priority|sort_order|position|rank|ordering|sort)\b/i.test(cn))return ri(0,100);
+  if(/\b(level|tier|grade|score|points)\b/i.test(cn))return ri(1,100);
+  if(/\b(discount|percent|percentage|tax_rate)\b/i.test(cn))return ri(0,50);
+  if(/\b(duration|length|width|height|weight|size|dimension)\b/i.test(cn))return ri(1,9999);
+  if(/\b(day|month|week|hour|minute|second)\b/i.test(cn))return ri(1,31);
+  if(/\b(year|yr)\b/i.test(cn))return ri(1970,2024);
+  if(/\b(floor|room|suite|building|wing)\b/i.test(cn))return ri(1,50);
+  if(/\b(version|ver|revision|iteration)\b/i.test(cn))return ri(1,15);
+  if(/\b(batch|lot)\b/i.test(cn))return ri(1000,9999);
+  if(/\b(pin|otp|confirmation_code|verification_code)\b/i.test(cn))return ri(100000,999999);
+  if(/\b(rating)\b/i.test(cn))return ri(1,5);
+  if(/\b(is_|has_|can_|will_|was_|should_)/i.test(cn))return Math.random()>.5?1:0;
+  return ri(1,10000);
+}
+
+function genFloat(cn,typeParams){
+  const s=typeParams&&typeParams.includes(',')?parseInt(typeParams.split(',')[1]):2;
+  if(/\b(price|cost|rate|fee|charge|total|subtotal|salary|wage|income|revenue|budget|balance)\b/i.test(cn))
+    return parseFloat((Math.random()*9999+1).toFixed(s));
+  if(/\b(lat|latitude)\b/i.test(cn))return parseFloat((Math.random()*180-90).toFixed(6));
+  if(/\b(lng|lon|longitude)\b/i.test(cn))return parseFloat((Math.random()*360-180).toFixed(6));
+  if(/\b(average|avg)\b/i.test(cn))return parseFloat((Math.random()*4.5+0.5).toFixed(1));
+  if(/\b(discount|percent|tax|commission)\b/i.test(cn))return parseFloat((Math.random()*50).toFixed(2));
+  if(/\b(weight|mass)\b/i.test(cn))return parseFloat((Math.random()*100+0.1).toFixed(2));
+  if(/\b(temperature|temp)\b/i.test(cn))return parseFloat((Math.random()*60-10).toFixed(1));
+  return parseFloat((Math.random()*1000).toFixed(s));
+}
+
+function genDateVal(rdbms){
+  const y=ri(2019,2024),m=ri(1,12),d=ri(1,28);
+  const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  if(rdbms==='oracle')return`DATE '${ds}'`;
+  return`'${ds}'`;
+}
+
+function genTimestampVal(rdbms){
+  const y=ri(2020,2024),mo=ri(1,12),d=ri(1,28),h=ri(0,23),mi=ri(0,59),s=ri(0,59);
+  const ds=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')} ${String(h).padStart(2,'0')}:${String(mi).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  if(rdbms==='oracle')return`TO_TIMESTAMP('${ds}','YYYY-MM-DD HH24:MI:SS')`;
+  if(rdbms==='sqlserver')return`'${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(h).padStart(2,'0')}:${String(mi).padStart(2,'0')}:${String(s).padStart(2,'0')}'`;
+  return`'${ds}'`;
+}
+
+function genBool(rdbms){
+  if(rdbms==='oracle'||rdbms==='sqlserver'||rdbms==='sqlite')return Math.random()>.4?1:0;
+  return Math.random()>.4?'TRUE':'FALSE';
+}
+
+function genTimeVal(rdbms){
+  const h=ri(0,23),m=ri(0,59),s=ri(0,59);
+  const ts=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  if(rdbms==='oracle')return`TO_TIMESTAMP('1970-01-01 ${ts}','YYYY-MM-DD HH24:MI:SS')`;
+  return`'${ts}'`;
+}
+
+/* Generate a single value for a column.
+   opts: { rowIndex, totalRows, pkMode, includeAuto }
+*/
+function generateValue(col,rdbms,ctx,tableName,opts){
+  const{rowIndex,totalRows,pkMode,includeAuto}=opts;
+  const{normalizedType:t,name:n,isNotNull:notNull,enumValues:ev,stringLength:sl,typeParams:tp,isPrimary}=col;
+
+  // Handle auto-skipped columns
+  if(col.shouldSkip){
+    // Primary key with explicit mode
+    if(isPrimary){
+      if(pkMode==='sequential')return rowIndex+1;
+      if(pkMode==='random')return ri(1,Math.max(1000,totalRows*10));
+    }
+    // Non-PK auto columns: only included if checkbox is on, and even then they get NULL
+    // (timestamps with DEFAULT, generated columns, etc.)
+    if(includeAuto)return null;
+    return null; // Column excluded entirely by the caller
+  }
+
+  const cn=n.toLowerCase();
+
+  if(!notNull&&Math.random()<0.12)return null;
+
+  if(t==='STRING'||t==='TEXT'){let v=genStr(cn,sl,t==='TEXT',ctx,tableName);if(sl&&v.length>sl)v=v.substring(0,sl);return v}
+  if(t==='INTEGER')return genInt(cn);
+  if(t==='FLOAT'||t==='DECIMAL')return genFloat(cn,tp);
+  if(t==='DATE')return genDateVal(rdbms);
+  if(t==='TIMESTAMP')return genTimestampVal(rdbms);
+  if(t==='BOOLEAN')return genBool(rdbms);
+  if(t==='ENUM'&&ev)return pick(ev);
+  if(t==='UUID')return genUUID();
+  if(t==='JSON')return genJSON();
+  if(t==='TIME')return genTimeVal(rdbms);
+  if(t==='YEAR')return ri(1970,2024);
+  if(t==='BINARY')return null;
+  return genStr(cn,sl||50,false,ctx,tableName);
+}
+
+/* ═══════════════════════════════════════════
+   INSERT FORMATTER
+   ═══════════════════════════════════════════ */
+function quoteId(name,rdbms){
+  if(rdbms==='mysql')return'`'+name+'`';
+  if(rdbms==='sqlserver')return'['+name+']';
+  return'"'+name+'"';
+}
+
+function escapeStr(s,rdbms){
+  if(rdbms==='mysql')return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return s.replace(/'/g,"''");
+}
+
+function formatVal(val,col,rdbms){
+  if(val===null)return'NULL';
+  const t=col.normalizedType;
+  if(t==='INTEGER'||t==='FLOAT'||t==='DECIMAL'||t==='YEAR')return String(val);
+  if(t==='BOOLEAN')return String(val);
+  if(t==='DATE'||t==='TIMESTAMP'||t==='TIME')return String(val);
+  return"'"+escapeStr(String(val),rdbms)+"'";
+}
+
+function formatInserts(tableName,columns,rows,rdbms){
+  const colNames=columns.map(c=>quoteId(c.name,rdbms)).join(', ');
+  const fullTable=quoteId(tableName,rdbms);
+
+  let output='-- Generated by SQLForge\n';
+  output+=`-- Table: ${tableName}\n`;
+  output+=`-- RDBMS: ${rdbms.toUpperCase()}\n`;
+  output+=`-- Records: ${rows.length}\n`;
+  output+=`-- Date: ${new Date().toISOString().replace('T',' ').substring(0,19)}\n\n`;
+
+  if(rdbms==='oracle'){
+    rows.forEach(row=>{
+      const vals=columns.map((c,i)=>formatVal(row[i],c,rdbms)).join(', ');
+      output+=`INSERT INTO ${fullTable} (${colNames}) VALUES (${vals});\n`;
+    });
+  } else {
+    const batchSize=100;
+    for(let i=0;i<rows.length;i+=batchSize){
+      const batch=rows.slice(i,i+batchSize);
+      const valStrs=batch.map(row=>{
+        const vals=columns.map((c,ci)=>formatVal(row[ci],c,rdbms)).join(', ');
+        return`(${vals})`;
+      }).join(',\n    ');
+      output+=`INSERT INTO ${fullTable} (${colNames}) VALUES\n    ${valStrs};\n\n`;
+    }
+  }
+  return output.trim()+'\n';
+}
+
+/* ═══════════════════════════════════════════
+   MAIN GENERATE
+   ═══════════════════════════════════════════ */
+let lastOutput='';
+
+function generate(){
+  const sql=document.getElementById('sqlInput').value.trim();
+  if(!sql){showToast('Please enter a CREATE TABLE statement','er');return}
+  const rdbms=document.getElementById('rdbms').value;
+  let count=parseInt(document.getElementById('rowCount').value);
+  if(isNaN(count)||count<1)count=1;
+  if(count>5000)count=5000;
+  document.getElementById('rowCount').value=count;
+  const pkMode=document.getElementById('pkMode').value;
+  const includeAuto=document.getElementById('includeAutoCols').checked;
+
+  let parsed;
+  try{parsed=parseCreateTable(sql)}catch(e){showToast(e.message,'er');return}
+
+  const{tableName,columns}=parsed;
+
+  // Determine which columns to include in the INSERT
+  const dataCols=columns.filter(c=>{
+    if(!c.shouldSkip)return true;                          // Always include normal columns
+    if(c.isPrimary&&pkMode!=='skip')return true;           // Include PK if mode is sequential or random
+    return includeAuto;                                     // Other auto cols follow the checkbox
+  });
+
+  const opts={pkMode,includeAuto};
+
+  const rows=[];
+  for(let i=0;i<count;i++){
+    const ctx=createRowCtx();
+    opts.rowIndex=i;
+    opts.totalRows=count;
+    const row=dataCols.map(c=>generateValue(c,rdbms,ctx,tableName,opts));
+    rows.push(row);
+  }
+
+  lastOutput=formatInserts(tableName,dataCols,rows,rdbms);
+  renderOutput(lastOutput);
+  renderAnalysis(columns,tableName,pkMode);
+
+  document.getElementById('copyBtn').disabled=false;
+  document.getElementById('dlBtn').disabled=false;
+  document.getElementById('statsBar').textContent=`${rows.length} rows \u00B7 ${dataCols.length} cols \u00B7 ${rdbms.toUpperCase()}`;
+
+  showToast(`Generated ${rows.length} INSERT statements for "${tableName}"`,'ok');
+}
+
+/* ═══════════════════════════════════════════
+   SYNTAX HIGHLIGHTING
+   ═══════════════════════════════════════════ */
+function escH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function highlightSQL(line){
+  let h=escH(line);
+  if(h.trim().startsWith('--'))return`<span class="sc">${h}</span>`;
+  h=h.replace(/'([^']*(?:''[^']*)*)'/g,'<span class="ss">\'$1\'</span>');
+  h=h.replace(/\b(INSERT|INTO|VALUES|NULL|TRUE|FALSE|DEFAULT|DATE|TO_DATE|TO_TIMESTAMP|SELECT|FROM|DUAL|ALL|AND|OR|NOT|SET|UPDATE|WHERE|DELETE|CREATE|TABLE|ALTER|DROP|INDEX|PRIMARY|KEY|FOREIGN|REFERENCES|CONSTRAINT|UNIQUE|CHECK|AUTO_INCREMENT|SERIAL|IDENTITY|IF|EXISTS)\b/gi,m=>`<span class="sk">${m}</span>`);
+  h=h.replace(/(?<![#\w>])(\b\d+\.?\d*\b)(?![<\w])/g,'<span class="sn">$1</span>');
+  return h;
+}
+
+function renderOutput(sql){
+  document.getElementById('emptyState').classList.add('hidden');
+  const codeEl=document.getElementById('outputCode');
+  codeEl.classList.remove('hidden');
+  const lines=sql.split('\n');
+  codeEl.innerHTML=lines.map((l,i)=>`<div class="cl"><span class="ln">${i+1}</span><span class="lc">${highlightSQL(l)}</span></div>`).join('');
+}
+
+function resetOutput(){
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('outputCode').classList.add('hidden');
+  document.getElementById('outputCode').innerHTML='';
+  document.getElementById('statsBar').textContent='';
+  document.getElementById('copyBtn').disabled=true;
+  document.getElementById('dlBtn').disabled=true;
+  lastOutput='';
+}
+
+/* ═══════════════════════════════════════════
+   COLUMN ANALYSIS
+   ═══════════════════════════════════════════ */
+function detectPattern(col,pkMode){
+  const cn=col.name.toLowerCase();
+  const t=col.normalizedType;
+
+  // PK columns — show based on selected mode
+  if(col.isPrimary&&col.shouldSkip){
+    if(pkMode==='sequential')return{icon:'fa-arrow-down-1-9',label:'Sequential PK',cls:'pat-seq'};
+    if(pkMode==='random')return{icon:'fa-shuffle',label:'Random PK',cls:'pat-rnd'};
+    return{icon:'fa-forward',label:'Skipped (Auto)',cls:'pat-skip'};
+  }
+
+  // Other auto-skipped columns
+  if(col.shouldSkip)return{icon:'fa-forward',label:'Skipped (Auto)',cls:'pat-skip'};
+
+  if(t==='STRING'||t==='TEXT'){
+    if(/^(first_name|firstname|fname|given_name)$/i.test(cn))return{icon:'fa-user',label:'First Name',cls:'pat-str'};
+    if(/^(last_name|lastname|lname|family_name|surname)$/i.test(cn))return{icon:'fa-user',label:'Last Name',cls:'pat-str'};
+    if(/^(full_name|fullname|display_name|displayname)$/i.test(cn))return{icon:'fa-user',label:'Full Name',cls:'pat-str'};
+    if(/\bemail\b/i.test(cn))return{icon:'fa-envelope',label:'Email',cls:'pat-str'};
+    if(/\b(phone|mobile|tel|fax)\b/i.test(cn))return{icon:'fa-phone',label:'Phone',cls:'pat-str'};
+    if(/\bcity\b/i.test(cn))return{icon:'fa-city',label:'City',cls:'pat-str'};
+    if(/\b(state|province|region)\b/i.test(cn))return{icon:'fa-map',label:'State/Province',cls:'pat-str'};
+    if(/\bcountry(?!_code)\b/i.test(cn))return{icon:'fa-globe',label:'Country',cls:'pat-str'};
+    if(/\b(zip|postal|postcode)\b/i.test(cn))return{icon:'fa-location-dot',label:'Postal Code',cls:'pat-str'};
+    if(/^(address|addr|full_address|shipping|billing)/i.test(cn))return{icon:'fa-location-dot',label:'Address',cls:'pat-str'};
+    if(/\b(street|road|avenue|blvd|drive|lane)\b/i.test(cn))return{icon:'fa-road',label:'Street',cls:'pat-str'};
+    if(/\b(url|website|link|site|homepage|domain)\b/i.test(cn))return{icon:'fa-link',label:'URL',cls:'pat-str'};
+    if(/\b(company|org|organization|employer|brand|vendor|supplier)\b/i.test(cn))return{icon:'fa-building',label:'Company',cls:'pat-str'};
+    if(/\b(department|dept)\b/i.test(cn))return{icon:'fa-sitemap',label:'Department',cls:'pat-str'};
+    if(/\b(title|position|role|job_title)\b/i.test(cn))return{icon:'fa-briefcase',label:'Job Title',cls:'pat-str'};
+    if(/\b(username|user_name|login|handle)\b/i.test(cn))return{icon:'fa-at',label:'Username',cls:'pat-str'};
+    if(/\b(password|pass|pwd|secret|token|api_key|apikey)\b/i.test(cn))return{icon:'fa-key',label:'Password/Token',cls:'pat-str'};
+    if(/\bslug\b/i.test(cn))return{icon:'fa-hashtag',label:'Slug',cls:'pat-str'};
+    if(/\b(color|colour)\b/i.test(cn))return{icon:'fa-palette',label:'Color',cls:'pat-str'};
+    if(/\b(desc|note|comment|bio|summary|content|body|message|remark|review|feedback)\b/i.test(cn))return{icon:'fa-align-left',label:'Long Text',cls:'pat-str'};
+    if(/\b(avatar|image|photo|picture|logo|icon|thumbnail|banner)\b/i.test(cn))return{icon:'fa-image',label:'Image URL',cls:'pat-str'};
+    if(/\b(gender|sex)\b/i.test(cn))return{icon:'fa-venus-mars',label:'Gender',cls:'pat-str'};
+    if(/\blang(?!uage_code|uages)\b/i.test(cn))return{icon:'fa-language',label:'Language',cls:'pat-str'};
+    if(/\b(currenc|curr)\b/i.test(cn))return{icon:'fa-coins',label:'Currency Code',cls:'pat-str'};
+    if(/\b(sku|barcode|isbn|part_number|item_code)\b/i.test(cn))return{icon:'fa-barcode',label:'Product Code',cls:'pat-str'};
+    if(/\bip\b/i.test(cn))return{icon:'fa-network-wired',label:'IP Address',cls:'pat-str'};
+    if(/\bmac\b/i.test(cn))return{icon:'fa-wifi',label:'MAC Address',cls:'pat-str'};
+    if(/\bfile|filename|file_name|path|filepath\b/i.test(cn))return{icon:'fa-file',label:'File Path',cls:'pat-str'};
+    if(/\b(categor|category|type|genre|class|group)\b/i.test(cn))return{icon:'fa-tag',label:'Category',cls:'pat-str'};
+    if(/\b(status|state)\b/i.test(cn))return{icon:'fa-circle-dot',label:'Status',cls:'pat-str'};
+    if(/\b(name|product_name|item_name|brand_name|tag_name)\b/i.test(cn))return{icon:'fa-tag',label:'Name',cls:'pat-str'};
+    if(/\bsubject\b/i.test(cn))return{icon:'fa-heading',label:'Subject',cls:'pat-str'};
+    return{icon:'fa-font',label:'Text',cls:'pat-str'};
+  }
+  if(t==='INTEGER'){
+    if(/\b(age|years)\b/i.test(cn))return{icon:'fa-cake-candles',label:'Age',cls:'pat-int'};
+    if(/\b(quantity|qty|stock|count|num|units|in_stock)\b/i.test(cn))return{icon:'fa-cubes',label:'Quantity',cls:'pat-int'};
+    if(/_id$/i.test(cn))return{icon:'fa-arrow-right-to-bracket',label:'Foreign Key ID',cls:'pat-int'};
+    if(/\b(view_count|views|clicks|impressions|downloads|likes|followers)\b/i.test(cn))return{icon:'fa-chart-simple',label:'Count/Metric',cls:'pat-int'};
+    if(/\b(priority|sort_order|position|rank|ordering|sort)\b/i.test(cn))return{icon:'fa-sort',label:'Sort/Order',cls:'pat-int'};
+    if(/\b(is_|has_|can_|will_|was_|should_)/i.test(cn))return{icon:'fa-toggle-on',label:'Boolean Flag',cls:'pat-int'};
+    if(/\b(year|yr)\b/i.test(cn))return{icon:'fa-calendar',label:'Year',cls:'pat-int'};
+    if(/\b(version|ver|revision)\b/i.test(cn))return{icon:'fa-code-branch',label:'Version',cls:'pat-int'};
+    if(/\b(level|tier|grade|score|points)\b/i.test(cn))return{icon:'fa-star',label:'Level/Score',cls:'pat-int'};
+    if(/\b(rating)\b/i.test(cn))return{icon:'fa-star',label:'Rating',cls:'pat-int'};
+    return{icon:'fa-hashtag',label:'Integer',cls:'pat-int'};
+  }
+  if(t==='FLOAT'||t==='DECIMAL'){
+    if(/\b(price|cost|fee|charge)\b/i.test(cn))return{icon:'fa-dollar-sign',label:'Price/Cost',cls:'pat-float'};
+    if(/\b(lat|latitude|lng|lon|longitude)\b/i.test(cn))return{icon:'fa-location-crosshairs',label:'Coordinates',cls:'pat-float'};
+    if(/\b(rating|score|average|avg)\b/i.test(cn))return{icon:'fa-star-half-stroke',label:'Rating/Score',cls:'pat-float'};
+    if(/\b(discount|percent|tax|commission)\b/i.test(cn))return{icon:'fa-percent',label:'Percentage',cls:'pat-float'};
+    if(/\b(salary|wage|income|revenue|budget|balance|total|subtotal|amount)\b/i.test(cn))return{icon:'fa-money-bill',label:'Monetary',cls:'pat-float'};
+    if(/\b(weight|mass)\b/i.test(cn))return{icon:'fa-weight-hanging',label:'Weight',cls:'pat-float'};
+    return{icon:'fa-calculator',label:'Decimal',cls:'pat-float'};
+  }
+  if(t==='DATE')return{icon:'fa-calendar-day',label:'Date',cls:'pat-date'};
+  if(t==='TIMESTAMP')return{icon:'fa-calendar-check',label:'Timestamp',cls:'pat-date'};
+  if(t==='TIME')return{icon:'fa-clock',label:'Time',cls:'pat-date'};
+  if(t==='BOOLEAN')return{icon:'fa-toggle-on',label:'Boolean',cls:'pat-bool'};
+  if(t==='UUID')return{icon:'fa-fingerprint',label:'UUID',cls:'pat-uuid'};
+  if(t==='ENUM')return{icon:'fa-list-check',label:'Enum',cls:'pat-str'};
+  if(t==='JSON')return{icon:'fa-brackets-curly',label:'JSON',cls:'pat-other'};
+  if(t==='YEAR')return{icon:'fa-calendar',label:'Year',cls:'pat-date'};
+  if(t==='BINARY')return{icon:'fa-file-zipper',label:'Binary',cls:'pat-other'};
+  return{icon:'fa-question',label:'Unknown',cls:'pat-other'};
+}
+
+function renderAnalysis(columns,tableName,pkMode){
+  const section=document.getElementById('analysisSection');
+  const tbody=document.getElementById('analysisBody');
+  section.classList.remove('hidden');
+
+  let html='';
+  columns.forEach((col,i)=>{
+    const pat=detectPattern(col,pkMode);
+    const constraints=[];
+    if(col.isPrimary)constraints.push('<span class="badge b-pk">PK</span>');
+    if(col.isNotNull)constraints.push('<span class="badge b-nn">NOT NULL</span>');
+    if(col.isUnique)constraints.push('<span class="badge b-uq">UNIQUE</span>');
+    if(col.shouldSkip)constraints.push('<span class="badge b-ai">AUTO</span>');
+    if(!constraints.length)constraints.push('<span class="badge b-sk">---</span>');
+
+    const typeDisplay=col.rawType+(col.typeParams?'('+col.typeParams+')':'');
+
+    // Determine action text
+    let actionHtml;
+    if(col.shouldSkip&&col.isPrimary){
+      if(pkMode==='skip')actionHtml='<span class="text-xs opacity-50">Excluded</span>';
+      else actionHtml='<span class="text-xs text-success">'+(pkMode==='sequential'?'1, 2, 3...':'Random ints')+'</span>';
+    }else if(col.shouldSkip){
+      actionHtml=document.getElementById('includeAutoCols').checked?'<span class="text-xs text-muted">NULL (auto)</span>':'<span class="text-xs opacity-50">Excluded</span>';
+    }else{
+      actionHtml='<span class="text-xs text-success">Generate</span>';
+    }
+
+    html+=`<tr>
+      <td class="text-muted">${i+1}</td>
+      <td class="font-mono font-medium text-white">${escH(col.name)}</td>
+      <td class="font-mono text-muted">${escH(typeDisplay)}</td>
+      <td>${constraints.join(' ')}</td>
+      <td><span class="pat-badge ${pat.cls}"><i class="fas ${pat.icon} text-[9px]"></i>${pat.label}</span></td>
+      <td>${actionHtml}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+function hideAnalysis(){
+  document.getElementById('analysisSection').classList.add('hidden');
+  document.getElementById('analysisBody').innerHTML='';
+}
+
+/* ═══════════════════════════════════════════
+   CLIPBOARD & DOWNLOAD
+   ═══════════════════════════════════════════ */
+function copyOutput(){
+  if(!lastOutput)return;
+  navigator.clipboard.writeText(lastOutput).then(()=>{
+    showToast('Copied to clipboard','ok');
+    const btn=document.getElementById('copyBtn');
+    btn.innerHTML='<i class="fas fa-check text-xs"></i> Copied';
+    setTimeout(()=>{btn.innerHTML='<i class="far fa-copy text-xs"></i> Copy'},2000);
+  }).catch(()=>showToast('Copy failed. Please select and copy manually.','er'));
+}
+
+function downloadOutput(){
+  if(!lastOutput)return;
+  const rdbms=document.getElementById('rdbms').value.toUpperCase();
+  const blob=new Blob([lastOutput],{type:'text/sql'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`sqlforge_${rdbms.toLowerCase()}_data.sql`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('File downloaded','inf');
+}
+
+/* ═══════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════ */
+let toastTimer=null;
+function showToast(msg,type){
+  const el=document.getElementById('toast');
+  el.className='toast '+type;
+  el.textContent=msg;
+  clearTimeout(toastTimer);
+  requestAnimationFrame(()=>{el.classList.add('show')});
+  toastTimer=setTimeout(()=>{el.classList.remove('show')},3500);
+}
+
+/* ═══════════════════════════════════════════
+   EXAMPLE QUERIES
+   ═══════════════════════════════════════════ */
+const EXAMPLES=[
+  {label:'Users',icon:'fa-users',sql:`CREATE TABLE users (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  username VARCHAR(50) NOT NULL UNIQUE,\n  email VARCHAR(255) NOT NULL,\n  first_name VARCHAR(100),\n  last_name VARCHAR(100),\n  phone VARCHAR(20),\n  avatar_url VARCHAR(500),\n  bio TEXT,\n  status VARCHAR(20) DEFAULT 'active',\n  is_verified BOOLEAN DEFAULT FALSE,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`},
+  {label:'Products',icon:'fa-box',sql:`CREATE TABLE products (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  sku VARCHAR(50) NOT NULL UNIQUE,\n  name VARCHAR(255) NOT NULL,\n  description TEXT,\n  price DECIMAL(10,2) NOT NULL,\n  cost_price DECIMAL(10,2),\n  quantity_in_stock INT DEFAULT 0,\n  category VARCHAR(100),\n  color VARCHAR(30),\n  weight DECIMAL(8,2),\n  is_active BOOLEAN DEFAULT TRUE,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`},
+  {label:'Orders',icon:'fa-cart-shopping',sql:`CREATE TABLE orders (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  user_id INT NOT NULL,\n  order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  status VARCHAR(20) DEFAULT 'pending',\n  total_amount DECIMAL(12,2),\n  discount_percent DECIMAL(5,2) DEFAULT 0,\n  shipping_address TEXT,\n  billing_address TEXT,\n  notes TEXT,\n  is_paid BOOLEAN DEFAULT FALSE\n);`},
+  {label:'Employees',icon:'fa-id-badge',sql:`CREATE TABLE employees (\n  emp_id INT PRIMARY KEY AUTO_INCREMENT,\n  first_name VARCHAR(100) NOT NULL,\n  last_name VARCHAR(100) NOT NULL,\n  email VARCHAR(255) NOT NULL,\n  phone VARCHAR(20),\n  department VARCHAR(100),\n  job_title VARCHAR(150),\n  salary DECIMAL(12,2),\n  hire_date DATE,\n  is_active BOOLEAN DEFAULT TRUE,\n  manager_id INT\n);`},
+  {label:'Posts',icon:'fa-newspaper',sql:`CREATE TABLE posts (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  author_id INT NOT NULL,\n  title VARCHAR(255) NOT NULL,\n  slug VARCHAR(255) UNIQUE,\n  content TEXT,\n  category VARCHAR(100),\n  view_count INT DEFAULT 0,\n  likes INT DEFAULT 0,\n  is_published BOOLEAN DEFAULT FALSE,\n  published_at TIMESTAMP,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`},
+  {label:'PostgreSQL',icon:'fa-database',sql:`CREATE TABLE accounts (\n  id SERIAL PRIMARY KEY,\n  uuid UUID DEFAULT gen_random_uuid(),\n  username VARCHAR(50) NOT NULL UNIQUE,\n  email VARCHAR(255) NOT NULL,\n  full_name VARCHAR(200),\n  balance DECIMAL(15,2) DEFAULT 0,\n  is_premium BOOLEAN DEFAULT FALSE,\n  preferences JSONB DEFAULT '{}',\n  locale VARCHAR(10) DEFAULT 'en-US',\n  timezone VARCHAR(50) DEFAULT 'UTC',\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  last_login_at TIMESTAMPTZ\n);`},
+  {label:'Oracle',icon:'fa-database',sql:`CREATE TABLE inventory (\n  item_id NUMBER(10) GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,\n  item_code VARCHAR2(30) NOT NULL UNIQUE,\n  item_name VARCHAR2(200) NOT NULL,\n  description CLOB,\n  unit_price NUMBER(12,2),\n  reorder_level NUMBER(6),\n  quantity_on_hand NUMBER(8) DEFAULT 0,\n  warehouse_location VARCHAR2(100),\n  last_restocked DATE,\n  is_discontinued NUMBER(1) DEFAULT 0,\n  created_by VARCHAR2(100),\n  creation_date DATE DEFAULT SYSDATE\n);`},
+  {label:'SQL Server',icon:'fa-database',sql:`CREATE TABLE [dbo].[Transactions] (\n  [TransactionID] INT IDENTITY(1,1) PRIMARY KEY,\n  [AccountNumber] VARCHAR(20) NOT NULL,\n  [TransactionType] VARCHAR(20) NOT NULL,\n  [Amount] DECIMAL(18,2) NOT NULL,\n  [CurrencyCode] CHAR(3) DEFAULT 'USD',\n  [Description] NVARCHAR(500),\n  [ReferenceNumber] VARCHAR(50),\n  [IPAddress] VARCHAR(45),\n  [IsFlagged] BIT DEFAULT 0,\n  [ProcessedAt] DATETIME2 DEFAULT GETDATE()\n);`},
+  {label:'Logs',icon:'fa-file-lines',sql:`CREATE TABLE system_logs (\n  id BIGINT PRIMARY KEY AUTO_INCREMENT,\n  level VARCHAR(10) NOT NULL,\n  message TEXT NOT NULL,\n  source VARCHAR(100),\n  ip_address VARCHAR(45),\n  mac_address VARCHAR(17),\n  user_agent VARCHAR(500),\n  request_url VARCHAR(1000),\n  response_code INT,\n  duration_ms INT,\n  error_stack TEXT,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`},
+  {label:'Contacts',icon:'fa-address-book',sql:`CREATE TABLE contacts (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  first_name VARCHAR(100) NOT NULL,\n  last_name VARCHAR(100) NOT NULL,\n  email VARCHAR(255),\n  phone VARCHAR(30),\n  mobile VARCHAR(30),\n  company VARCHAR(200),\n  job_title VARCHAR(150),\n  street_address VARCHAR(255),\n  city VARCHAR(100),\n  state VARCHAR(100),\n  postal_code VARCHAR(20),\n  country VARCHAR(100),\n  country_code CHAR(2),\n  notes TEXT,\n  tags VARCHAR(500),\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`}
+];
+
+function initExamples(){
+  const container=document.getElementById('exampleChips');
+  container.innerHTML=EXAMPLES.map((ex,i)=>`
+    <button onclick="loadExample(${i})" class="chip bg-card rounded-lg px-3 py-1.5 text-xs text-muted hover:text-white flex items-center gap-1.5">
+      <i class="fas ${ex.icon} text-[10px] text-accent/60"></i>${ex.label}
+    </button>
+  `).join('');
+}
+
+function loadExample(idx){
+  document.getElementById('sqlInput').value=EXAMPLES[idx].sql;
+  showToast(`Loaded "${EXAMPLES[idx].label}" example`,'inf');
+}
+
+/* ═══════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+   ═══════════════════════════════════════════ */
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){
+    e.preventDefault();
+    generate();
+  }
+});
+
+/* ═══════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════ */
+initExamples();
+</script>
+</body>
+</html>
