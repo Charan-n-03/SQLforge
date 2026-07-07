@@ -1,4 +1,6 @@
 # [SQLForge — Smart Data Generator](https://charan-n-03.github.io/SQLforge/) 
+![Static Badge](https://img.shields.io/badge/Vibe-coding-black)(https://en.wikipedia.org/wiki/Vibe_coding)
+
 [visit here](https://charan-n-03.github.io/SQLforge/) to see the SQLforge web.
 
 SQLForge is a fully client-side smart SQL data generator that takes a `CREATE TABLE` statement and produces realistic `INSERT` statements. It natively supports formatting for MySQL, PostgreSQL, Oracle, SQL Server, and SQLite. 
