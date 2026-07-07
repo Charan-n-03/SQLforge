@@ -1,5 +1,6 @@
 # [SQLForge — Smart Data Generator](https://charan-n-03.github.io/SQLforge/) 
-![Static Badge](https://img.shields.io/badge/Vibe-coding-black)(https://en.wikipedia.org/wiki/Vibe_coding)
+![Static Badge](https://img.shields.io/badge/Vibe-coding-black?link=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FVibe_coding)
+
 
 [visit here](https://charan-n-03.github.io/SQLforge/) to see the SQLforge web.
 
